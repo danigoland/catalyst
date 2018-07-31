@@ -915,7 +915,7 @@ class Exchange:
         pass
 
     @abstractmethod
-    def get_order(self, order_id, symbol_or_asset=None):
+    def get_order(self, order_id, symbol_or_asset=None, params=None):
         """Lookup an order based on the order id returned from one of the
         order functions.
 

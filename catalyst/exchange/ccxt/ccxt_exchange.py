@@ -1140,7 +1140,7 @@ class CCXT(Exchange):
         order.broker_order_id = ', '.join([t['id'] for t in trades])
         return transactions
 
-    def get_order(self, order_id, asset_or_symbol=None, return_price=False):
+    def get_order(self, order_id, asset_or_symbol=None, return_price=False, params={}):
         """Lookup an order based on the order id returned from one of the
         order functions.
 
@@ -1168,7 +1168,10 @@ class CCXT(Exchange):
         try:
             symbol = self.get_symbol(asset_or_symbol) \
                 if asset_or_symbol is not None else None
-            order_status = self.api.fetch_order(id=order_id, symbol=symbol)
+            if self.api.id == "kucoin":
+                order_status = self.api.fetch_order(id=order_id, symbol=symbol, params=params)
+            else:
+                order_status = self.api.fetch_order(id=order_id, symbol=symbol, params={})
             order, executed_price = self._create_order(order_status)
 
             if return_price:

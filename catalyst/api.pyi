@@ -213,7 +213,7 @@ def get_environment(field='platform'):
     """
 
 
-def get_order(order_id, asset_or_symbol=None, return_price=False):
+def get_order(order_id, asset_or_symbol=None, return_price=False, params={}):
     """Lookup an order based on the order id returned from one of the
     order functions.
 
