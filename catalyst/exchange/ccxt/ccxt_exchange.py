@@ -1182,9 +1182,11 @@ class CCXT(Exchange):
         try:
             symbol = self.get_symbol(asset_or_symbol) \
                 if asset_or_symbol is not None else None
-            order_status = self.api.fetch_order(id=order_id,
-                                                symbol=symbol,
-                                                params=params)
+            # TODO review if Kucoin still needs this exception with API2.0
+            if self.api.id == "kucoin":
+                order_status = self.api.fetch_order(id=order_id, symbol=symbol, params=params)
+            else:
+                order_status = self.api.fetch_order(id=order_id, symbol=symbol, params={})
             order, executed_price = self._create_order(order_status)
 
             if return_price:
