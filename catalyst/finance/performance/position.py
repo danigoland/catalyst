@@ -126,6 +126,9 @@ class Position(object):
 
         total_shares = self.amount + txn.amount
 
+        if total_shares < 0:
+            total_shares = 0
+
         if total_shares == 0:
             self.cost_basis = 0.0
         else:

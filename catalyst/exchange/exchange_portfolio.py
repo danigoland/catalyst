@@ -126,6 +126,9 @@ class ExchangePortfolio(Portfolio):
                 'Trying to remove order for a position not held: %s' % order.id
             )
 
-        order_position.amount -= order.amount
+        if order.amount > order_position.amount:
+            order_position.amount = 0
+        else:
+            order_position.amount -= order.amount
 
         log.debug('removed order from portfolio')
