@@ -255,8 +255,9 @@ class ExchangeBlotter(Blotter):
         commissions = []
 
         for order, txn in self.check_open_orders():
-            order.dt = txn.dt
-            transactions.append(txn)
+            if txn is not None:
+                order.dt = txn.dt
+                transactions.append(txn)
 
             if not order.open:
                 closed_orders.append(order)
