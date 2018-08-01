@@ -674,6 +674,18 @@ class Exchange:
 
         return df
 
+    def check_different_total_balance(self, currency, balances, amount):
+        total = balances[currency]['total'] if currency in balances else None
+
+        if total is None:
+            return None, False
+
+        if total != amount:
+            return total, True
+
+        else:
+            return total, False
+
     def _check_low_balance(self, currency, balances, amount):
         """
         In order to avoid spending money that the user doesn't own,
@@ -760,20 +772,28 @@ class Exchange:
                 position.last_sale_date = ticker['last_traded']
 
                 if check_balances:
-                    total, is_lower = self._check_low_balance(
+                    total, is_different = self.check_different_total_balance(
                         currency=asset.base_currency,
                         balances=balances,
                         amount=position.amount,
                     )
 
-                    if is_lower:
-                        log.warn(
-                            'detected lower balance for {} on {}: {} < {}, '
-                            'updating position amount'.format(
-                                asset.symbol, self.name, total, position.amount
-                            )
-                        )
+                    if is_different:
                         position.amount = total
+                        if total < position.amount:
+                            log.warn(
+                                'detected lower balance for {} on {}: {} < {}, '
+                                'updating position amount'.format(
+                                    asset.symbol, self.name, total, position.amount
+                                )
+                            )
+                        else:
+                            log.warn(
+                                'detected higher balance for {} on {}: {} > {}, '
+                                'updating position amount'.format(
+                                    asset.symbol, self.name, total, position.amount
+                                )
+                            )
 
                 positions_value += \
                     position.amount * position.last_sale_price
