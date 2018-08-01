@@ -738,12 +738,12 @@ class Exchange:
                     amount=cash,
                 )
                 if is_lower:
-                    raise NotEnoughCashError(
-                        currency=self.quote_currency,
+                    log.warn(NotEnoughCashError(
+                        currency=self.base_currency,
                         exchange=self.name,
-                        total=total_cash,
+                        free=free_cash,
                         cash=cash,
-                    )
+                    ).message)
 
         positions_value = 0.0
         if positions:
