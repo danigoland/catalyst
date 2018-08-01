@@ -1052,7 +1052,8 @@ class CCXT(Exchange):
         order.filled = exc_order.filled
 
         transactions = []
-        if exc_order.status == ORDER_STATUS.FILLED:
+        if exc_order.status == ORDER_STATUS.FILLED or \
+                (exc_order.status == ORDER_STATUS.CANCELLED and exc_order.filled != 0):
             if order.amount > exc_order.amount:
                 log.warn(
                     'executed order amount {} differs '
