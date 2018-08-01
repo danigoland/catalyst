@@ -1045,7 +1045,7 @@ class CCXT(Exchange):
 
         """
         exc_order, price = self.get_order(
-            order.id, order.asset, return_price=True
+            order.id, order.asset, return_price=True, params={'type': order.direction_type}
         )
         order.status = exc_order.status
         order.commission = exc_order.commission
