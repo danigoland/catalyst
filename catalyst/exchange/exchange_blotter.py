@@ -215,7 +215,8 @@ class ExchangeBlotter(Blotter):
                 # that this is safer until we have a robust way to track
                 # the trades already processed by the algo. We can't loose
                 # them if the algo shuts down.
-                if transactions and order.status == ORDER_STATUS.FILLED:
+                if transactions and (order.status == ORDER_STATUS.FILLED
+                                     or (order.status == ORDER_STATUS.CANCELLED and order.filled != 0)):
                     avg_price = np.average(
                         a=[t.price for t in transactions],
                         weights=[t.amount for t in transactions],
