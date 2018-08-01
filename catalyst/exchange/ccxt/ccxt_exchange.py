@@ -1043,11 +1043,11 @@ class CCXT(Exchange):
         transactions = []
         if exc_order.status == ORDER_STATUS.FILLED or \
                 (exc_order.status == ORDER_STATUS.CANCELLED and exc_order.filled != 0):
-            if order.amount > exc_order.amount:
+            if order.amount != exc_order.amount:
                 log.warn(
-                    'executed order amount {} differs '
-                    'from original'.format(
-                        exc_order.amount, order.amount
+                    'order({}): executed amount {} differs '
+                    'from original {}'.format(
+                        order.id, exc_order.amount, order.amount
                     )
                 )
 
@@ -1057,7 +1057,7 @@ class CCXT(Exchange):
             )
             transaction = Transaction(
                 asset=order.asset,
-                amount=order.amount,
+                amount=exc_order.amount,
                 dt=pd.Timestamp.utcnow(),
                 price=price,
                 order_id=order.id,
@@ -1074,6 +1074,8 @@ class CCXT(Exchange):
 
         try:
             all_trades = self.get_trades(order.asset)
+            exc_order = self.get_order(order.id, order.asset, return_price=False, params={'type': order.direction_type})
+            order.status = exc_order.status
         except RequestTimeout as e:
             raise ExchangeRequestError(error="Received timeout from exchange")
         except ExchangeRequestError as e:
