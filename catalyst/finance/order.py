@@ -244,6 +244,10 @@ class Order(object):
     def open_amount(self):
         return self.amount - self.filled
 
+    @property
+    def direction_type(self):
+        return "BUY" if self.direction == 1 else "SELL"
+
     def __repr__(self):
         """
         String representation for this object.
