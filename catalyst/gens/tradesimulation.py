@@ -220,29 +220,32 @@ class AlgorithmSimulator(object):
                     return []
 
             for dt, action in self.clock:
-                if action == BAR:
-                    for capital_change_packet in every_bar(dt):
-                        yield capital_change_packet
-                elif action == SESSION_START:
-                    for capital_change_packet in once_a_day(dt):
-                        yield capital_change_packet
-                elif action == SESSION_END:
-                    # End of the session.
-                    if emission_rate == 'daily':
-                        handle_benchmark(normalize_date(dt))
-                    execute_order_cancellation_policy()
+                try:
+                    if action == BAR:
+                        for capital_change_packet in every_bar(dt):
+                            yield capital_change_packet
+                    elif action == SESSION_START:
+                        for capital_change_packet in once_a_day(dt):
+                            yield capital_change_packet
+                    elif action == SESSION_END:
+                        # End of the session.
+                        if emission_rate == 'daily':
+                            handle_benchmark(normalize_date(dt))
+                        execute_order_cancellation_policy()
 
-                    yield self._get_daily_message(dt, algo, algo.perf_tracker)
-                elif action == BEFORE_TRADING_START_BAR:
-                    self.simulation_dt = dt
-                    algo.on_dt_changed(dt)
-                    algo.before_trading_start(self.current_data)
-                elif action == MINUTE_END:
-                    handle_benchmark(dt)
-                    minute_msg = \
-                        self._get_minute_message(dt, algo, algo.perf_tracker)
+                        yield self._get_daily_message(dt, algo, algo.perf_tracker)
+                    elif action == BEFORE_TRADING_START_BAR:
+                        self.simulation_dt = dt
+                        algo.on_dt_changed(dt)
+                        algo.before_trading_start(self.current_data)
+                    elif action == MINUTE_END:
+                        handle_benchmark(dt)
+                        minute_msg = \
+                            self._get_minute_message(dt, algo, algo.perf_tracker)
 
-                    yield minute_msg
+                        yield minute_msg
+                except:
+                    log.exception(str.format("Error processing action {}. Time: {}", action, str(dt)))
 
         risk_message = algo.perf_tracker.handle_simulation_end()
         yield risk_message
