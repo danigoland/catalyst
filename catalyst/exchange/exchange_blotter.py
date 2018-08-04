@@ -209,7 +209,18 @@ class ExchangeBlotter(Blotter):
             for order in self.open_orders[asset]:
                 log.debug('found open order: {}'.format(order.id))
 
-                transactions = exchange.process_order(order)
+                try:
+                    transactions = retry(
+                        action=exchange.process_order,
+                        attempts=self.attempts['get_transactions_attempts'],
+                        sleeptime=self.attempts['retry_sleeptime'],
+                        retry_exceptions=(ExchangeRequestError,),
+                        cleanup=lambda: log.warn('Error fetching order {}. Trying again.', order.id),
+                        args=(order,)
+                    )
+                except ExchangeRequestError as e:
+                    log.warn("Multiple errors checking order status. Moving on!! {}", order)
+                    transactions = []
                 # This is a temporary measure, we should really update all
                 # trades, not just when the order gets filled. I just think
                 # that this is safer until we have a robust way to track
