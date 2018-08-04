@@ -142,11 +142,19 @@ class PositionTracker(object):
             position.last_sale_date = last_sale_date
         if cost_basis is not None:
             position.cost_basis = cost_basis
+        self.remove_position_if_empty(position)
 
     def execute_transaction(self, txn):
         # Update Position
         # ----------------
         asset = txn.asset
+
+        # the decrement on the position size will be managed by the (exchange_algorithm::synchronize_portfolio)
+        if txn.amount < 0:
+            if asset in self.positions:
+                position = self.positions[asset]
+                self.remove_position_if_empty(position)
+            return
 
         if asset not in self.positions:
             position = Position(asset)
@@ -156,13 +164,22 @@ class PositionTracker(object):
 
         position.update(txn)
 
-        if position.amount == 0:
-            del self.positions[asset]
+        self.remove_position_if_empty(position)
+
+    def remove_position_if_empty(self, position):
+        if position.amount == 0 \
+                or \
+                (position.asset.quote_currency == 'btc'
+                 and position.last_sale_price * position.amount < 0.000001) \
+                or \
+                (position.asset.quote_currency in ['usdt', 'tusd', 'usd', 'eur']
+                 and position.last_sale_price * position.amount < 0.01):
+            del self.positions[position.asset]
 
             try:
                 # if this position exists in our user-facing dictionary,
                 # remove it as well.
-                del self._positions_store[asset]
+                del self._positions_store[position.asset]
             except KeyError:
                 pass
 
