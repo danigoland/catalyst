@@ -44,7 +44,7 @@ class Order(object):
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "asset", "amount", "filled",
                  "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type", "broker_order_id"]
+                 "limit_reached", "direction", "type", "broker_order_id", "matched_price"]
 
     @expect_types(asset=Asset)
     def __init__(self, dt, asset, amount, stop=None, limit=None, filled=0,
@@ -75,6 +75,7 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = zp.DATASOURCE_TYPE.ORDER
         self.broker_order_id = None
+        self.matched_price = None
 
     def make_id(self):
         return uuid.uuid4().hex

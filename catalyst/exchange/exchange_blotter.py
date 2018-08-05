@@ -105,7 +105,7 @@ class TradingPairFixedSlippage(SlippageModel):
 
             order.check_triggers(price, dt)
             if not order.triggered:
-                log.info(
+                log.debug(
                     'order has not reached the trigger at current '
                     'price {}'.format(price)
                 )
@@ -125,9 +125,17 @@ class TradingPairFixedSlippage(SlippageModel):
 
         if order.amount > 0:
             # Buy order
+            # When simulating orders, it better to assume the order was matched at the exact price
+            # instead of using candle the closing price
+            if order.limit > price:
+                price = order.limit
             adj_price = price * (1 + self.slippage)
         else:
             # Sell order
+            # When simulating orders, it is better to assume the order was matched at the exact price
+            # instead of using candle the closing price
+            if order.limit < price:
+                price = order.limit
             adj_price = price * (1 - self.slippage)
 
         log.debug('added slippage to price: {} => {}'.format(price, adj_price))
