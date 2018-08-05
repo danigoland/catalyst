@@ -116,7 +116,7 @@ def calc_gross_value(long_value, short_value):
 
 class PositionTracker(object):
 
-    def __init__(self, data_frequency):
+    def __init__(self, data_frequency, is_simulation):
         # asset => position object
         self.positions = positiondict()
         self._unpaid_dividends = {}
@@ -124,6 +124,7 @@ class PositionTracker(object):
         self._positions_store = zp.Positions()
 
         self.data_frequency = data_frequency
+        self.is_simulation = is_simulation
 
     @expect_types(asset=Asset)
     def update_position(self, asset, amount=None, last_sale_price=None,
@@ -150,7 +151,7 @@ class PositionTracker(object):
         asset = txn.asset
 
         # the decrement on the position size will be managed by the (exchange_algorithm::synchronize_portfolio)
-        if txn.amount < 0:
+        if not self.is_simulation and txn.amount < 0:
             if asset in self.positions:
                 position = self.positions[asset]
                 self.remove_position_if_empty(position)
