@@ -98,9 +98,11 @@ class PerformanceTracker(object):
         self.total_session_count = len(self.sim_params.sessions)
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
+        self.is_simulation = sim_params.arena == 'backtest'
 
         self.position_tracker = PositionTracker(
-            data_frequency=self.sim_params.data_frequency
+            data_frequency=self.sim_params.data_frequency,
+            is_simulation=self.is_simulation
         )
 
         if self.emission_rate == 'daily':
