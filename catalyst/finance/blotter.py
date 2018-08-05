@@ -384,6 +384,8 @@ class Blotter(object):
 
                     # added for stats
                     txn.commission = additional_commission
+                    # the matched price might be different from the ask. This affects the overall money flow
+                    order.matched_price = txn.price
 
                     transactions.append(txn)
 

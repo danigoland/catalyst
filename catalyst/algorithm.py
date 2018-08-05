@@ -2083,7 +2083,7 @@ class TradingAlgorithm(object):
         return []
 
     @api_method
-    def get_order(self, order_id):
+    def get_order(self, order_id, asset_or_symbol=None, return_price=False, params={}):
         """Lookup an order based on the order id returned from one of the
         order functions.
 
@@ -2098,10 +2098,14 @@ class TradingAlgorithm(object):
             The order object.
         """
         if order_id in self.blotter.orders:
-            return self.blotter.orders[order_id].to_api_obj()
+            order = self.blotter.orders[order_id].to_api_obj()
+            if return_price:
+                return order, order.matched_price
+            else:
+                return order
 
     @api_method
-    def cancel_order(self, order_param):
+    def cancel_order(self, order_param, symbol=None, params={}):
         """Cancel an open order.
 
         Parameters
