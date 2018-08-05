@@ -140,6 +140,9 @@ def _filter_requirements(lines_iter, filter_names=None,
         if not line or line.startswith('#'):
             continue
 
+        if line.startswith('git') or line.startswith("-e git"):
+            continue
+
         match = REQ_PATTERN.match(line)
         if match is None:
             raise AssertionError(
