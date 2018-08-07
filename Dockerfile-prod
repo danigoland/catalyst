@@ -49,8 +49,17 @@ RUN pip install 'numpy==1.14.0' \
 # build and install the catalyst package into the image
 #
 
-ADD . /catalyst
+ADD etc /catalyst/etc
+ADD versioneer.py setup.* /catalyst/
+ADD catalyst/lib /catalyst/catalyst/lib
+ADD catalyst/assets /catalyst/catalyst/assets
+ADD catalyst/data /catalyst/catalyst/data
+ADD catalyst/_protocol.pyx /catalyst/catalyst/_protocol.pyx
+ADD catalyst/gens/sim_engine.pyx /catalyst/catalyst/gens/sim_engine.pyx
+ADD catalyst/utils/calendars/_calendar_helpers.pyx /catalyst/catalyst/utils/calendars/_calendar_helpers.pyx
 WORKDIR /catalyst
 RUN pip install -e .
+
+ADD catalyst /catalyst/catalyst
 
 CMD ["/bin/bash"]
