@@ -304,7 +304,10 @@ class DataPortalExchangeBacktest(DataPortalExchangeBase):
         if data_frequency == "minute":
             # for minute frequency always request data until the
             # current minute (do not include the current minute)
-            last_dt_for_series = end_dt - datetime.timedelta(minutes=1)
+            # last_dt_for_series = end_dt - datetime.timedelta(minutes=1)
+
+            # keeping the last minute to have the same output as before
+            last_dt_for_series = end_dt
 
             # read the minute bundles for daily frequency to
             # support last partial candle
