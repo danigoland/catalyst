@@ -60,6 +60,8 @@ ADD catalyst/utils/calendars/_calendar_helpers.pyx /catalyst/catalyst/utils/cale
 WORKDIR /catalyst
 RUN pip install -e .
 
+ADD .git /catalyst/.git
+ADD .gitattributes /catalyst/.gitattributes
 ADD catalyst /catalyst/catalyst
 
 CMD ["/bin/bash"]
