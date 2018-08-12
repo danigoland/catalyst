@@ -1,6 +1,7 @@
-MANIFEST.in
-**/*pyc
-.eggs
-dist
-build
-*.egg-info
+*
+!catalyst/
+!versioneer.py
+!setup.*
+!etc/
+!.git/
+!.gitattributes
