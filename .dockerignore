@@ -5,3 +5,4 @@
 !etc/
 !.git/
 !.gitattributes
+etc/*-environment.yml
