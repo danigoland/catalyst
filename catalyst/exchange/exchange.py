@@ -739,9 +739,9 @@ class Exchange:
                 )
                 if is_lower:
                     log.warn(NotEnoughCashError(
-                        currency=self.base_currency,
+                        currency=self.quote_currency,
                         exchange=self.name,
-                        free=free_cash,
+                        total=total_cash,
                         cash=cash,
                     ).message)
 
