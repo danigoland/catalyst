@@ -1,6 +1,6 @@
 #
 # Build:
-#    docker build -t enigmampc/catalyst-prod -f Dockerfile-prod .
+#    docker build -t enigmampc/catalyst-prod:0.5.18.CUSTOM -f Dockerfile-prod .
 #
 # Run:
 #    docker run -v /some/folder:/app -v ~/.catalyst:/root/.catalyst --name catalyst-prod -it enigmampc/catalyst-prod

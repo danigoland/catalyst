@@ -1,4 +1,4 @@
-name: catalyst
+name: catalyst5_18-ccxt1_17_113
 channels:
 - conda-forge
 - defaults
