@@ -1113,7 +1113,7 @@ class ExchangeTradingAlgorithmLive(ExchangeTradingAlgorithmBase):
             sleeptime=self.attempts['retry_sleeptime'],
             retry_exceptions=(ExchangeRequestError,),
             cleanup=lambda: log.warn('Fetching orders again.'),
-            args=(order_id, asset_or_symbol, return_price)
+            args=(order_id, asset_or_symbol, return_price, params)
         )
 
     @api_method
