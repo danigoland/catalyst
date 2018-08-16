@@ -1151,7 +1151,6 @@ class ExchangeTradingAlgorithmLive(ExchangeTradingAlgorithmBase):
                 log.warn('attempting to cancel the order again'),
                 args=(order_id, symbol, params)
             )
-            self.blotter.cancel(order_id)
         else:
             self.blotter.cancel(order_id)
 
