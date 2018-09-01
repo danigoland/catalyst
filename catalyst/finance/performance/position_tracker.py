@@ -171,10 +171,10 @@ class PositionTracker(object):
         if position.amount == 0 \
                 or \
                 (position.asset.quote_currency == 'btc'
-                 and position.last_sale_price * position.amount < 0.000001) \
+                 and position.last_sale_price * position.amount < 0.000002) \
                 or \
                 (position.asset.quote_currency in ['usdt', 'tusd', 'usd', 'eur']
-                 and position.last_sale_price * position.amount < 0.01):
+                 and position.last_sale_price * position.amount < 0.03):
             del self.positions[position.asset]
 
             try:
