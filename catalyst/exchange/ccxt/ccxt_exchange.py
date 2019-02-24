@@ -741,10 +741,10 @@ class CCXT(Exchange):
 
         limit_price = price if order_type == 'limit' else None
 
-        if 'price' in order_status:
-            executed_price = order_status['price']
-        elif 'cost' in order_status and "amount" in order_status:
+        if 'cost' in order_status and "amount" in order_status:
             executed_price = order_status['cost'] / order_status['amount']
+        elif 'price' in order_status:
+            executed_price = order_status['price']
         else:
             executed_price = None
         commission = order_status['fee']
@@ -920,6 +920,7 @@ class CCXT(Exchange):
                 amount=prec_amount,
                 price=price
             )
+            prec_amount = float(prec_amount)
         except InvalidOrder as e:
             log.warn('the exchange rejected the order: {}'.format(e))
             raise CreateOrderError(exchange=self.name, error=e)
@@ -962,8 +963,10 @@ class CCXT(Exchange):
             raise ExchangeRequestError(error=e)
 
         exchange_amount = None
-        if 'amount' in result and result['amount'] != prec_amount:
-            exchange_amount = result['amount']
+        if 'amount' in result:
+            result_amount = float(result['amount'])
+            if result_amount != prec_amount:
+                exchange_amount = result['amount']
 
         elif 'info' in result:
             if 'origQty' in result['info']:

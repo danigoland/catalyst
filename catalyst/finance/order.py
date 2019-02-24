@@ -64,7 +64,7 @@ class Order(object):
         self.reason = None
         self.created = dt
         self.asset = asset
-        self.amount = amount
+        self.amount = float(amount)
         self.filled = filled
         self.commission = commission
         self._status = ORDER_STATUS.OPEN
