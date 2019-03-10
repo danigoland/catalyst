@@ -783,7 +783,6 @@ class Exchange:
                     )
 
                     if is_different:
-                        position.amount = total
                         if total < position.amount:
                             log.warn(
                                 'detected lower balance for {} on {}: {} < {}, '
@@ -798,6 +797,7 @@ class Exchange:
                                     asset.symbol, self.name, total, position.amount
                                 )
                             )
+                        position.amount = total
 
                 positions_value += \
                     position.amount * position.last_sale_price
