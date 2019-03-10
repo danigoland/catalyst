@@ -15,6 +15,7 @@
 
 from __future__ import division
 
+import os
 import logbook
 import numpy as np
 from collections import namedtuple
@@ -48,6 +49,10 @@ PositionStats = namedtuple('PositionStats',
                             'long_exposure',
                             'longs_count',
                             'net_value'])
+
+
+BTC_DUST = float(os.getenv("BTC_DUST", "0.000002"))
+FIAT_DUST = float(os.getenv("FIAT_DUST", "0.03"))
 
 
 def calc_position_values(positions):
@@ -171,10 +176,10 @@ class PositionTracker(object):
         if position.amount == 0 \
                 or \
                 (position.asset.quote_currency == 'btc'
-                 and position.last_sale_price * position.amount < 0.000002) \
+                 and position.last_sale_price * position.amount < BTC_DUST) \
                 or \
                 (position.asset.quote_currency in ['usdt', 'tusd', 'usd', 'eur']
-                 and position.last_sale_price * position.amount < 0.03):
+                 and position.last_sale_price * position.amount < FIAT_DUST):
             del self.positions[position.asset]
 
             try:
