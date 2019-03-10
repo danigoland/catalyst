@@ -677,6 +677,10 @@ class Exchange:
     def check_different_total_balance(self, currency, balances, amount):
         total = balances[currency]['total'] if currency in balances else None
 
+        # Bittrex doesn't return the values that are rounded to zero, so we need to assume the missing ones are zero
+        if self.name == 'bittrex' and total is None:
+            total = 0
+
         if total is None:
             return None, False
 
