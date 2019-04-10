@@ -127,14 +127,14 @@ class TradingPairFixedSlippage(SlippageModel):
             # Buy order
             # When simulating orders, it better to assume the order was matched at the exact price
             # instead of using candle the closing price
-            if order.limit > price:
+            if order.limit is not None and order.limit > price:
                 price = order.limit
             adj_price = price * (1 + self.slippage)
         else:
             # Sell order
             # When simulating orders, it is better to assume the order was matched at the exact price
             # instead of using candle the closing price
-            if order.limit < price:
+            if order.limit is not None and order.limit < price:
                 price = order.limit
             adj_price = price * (1 - self.slippage)
 
