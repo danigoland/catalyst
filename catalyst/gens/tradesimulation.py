@@ -247,8 +247,11 @@ class AlgorithmSimulator(object):
                 except:
                     log.exception(str.format("Error processing action {}. Time: {}", action, str(dt)))
 
-        risk_message = algo.perf_tracker.handle_simulation_end()
-        yield risk_message
+        try:
+            risk_message = algo.perf_tracker.handle_simulation_end()
+            yield risk_message
+        except Exception:
+            yield "Not enough data to analyse the algo performance"
 
     def _cleanup_expired_assets(self, dt, position_assets):
         """
