@@ -109,24 +109,26 @@ class PerformanceTracker(object):
             self.all_benchmark_returns = pd.Series(
                 index=self.sim_params.sessions
             )
-            self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(
-                    self.sim_params,
-                    self.treasury_curves,
-                    self.trading_calendar
-                )
+            # RISK REMOVAL
+            # self.cumulative_risk_metrics = \
+            #     risk.RiskMetricsCumulative(
+            #         self.sim_params,
+            #         self.treasury_curves,
+            #         self.trading_calendar
+            #     )
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
                 freq='Min')
             )
-            self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(
-                    self.sim_params,
-                    self.treasury_curves,
-                    self.trading_calendar,
-                    create_first_day_stats=True
-                )
+            # RISK REMOVAL
+            # self.cumulative_risk_metrics = \
+            #     risk.RiskMetricsCumulative(
+            #         self.sim_params,
+            #         self.treasury_curves,
+            #         self.trading_calendar,
+            #         create_first_day_stats=True
+            #     )
 
         # this performance period will span the entire simulation from
         # inception.
@@ -225,8 +227,10 @@ class PerformanceTracker(object):
             'period_end': self.period_end,
             'capital_base': self.capital_base,
             'cumulative_perf': self.cumulative_performance.to_dict(),
-            'progress': self.progress,
-            'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
+            'progress': self.progress
+            # RISK REMOVAL
+            # ,
+            # 'cumulative_risk_metrics': self.cumulative_risk_metrics.to_dict()
         }
         if emission_type == 'daily':
             _dict['daily_perf'] = self.todays_performance.to_dict()
@@ -353,10 +357,11 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        self.cumulative_risk_metrics.update(todays_date,
-                                            self.todays_performance.returns,
-                                            bench_since_open,
-                                            account.leverage)
+        # RISK REMOVAL
+        # self.cumulative_risk_metrics.update(todays_date,
+        #                                     self.todays_performance.returns,
+        #                                     bench_since_open,
+        #                                     account.leverage)
 
         minute_packet = self.to_dict(emission_type='minute')
         return minute_packet
@@ -388,11 +393,12 @@ class PerformanceTracker(object):
 
             benchmark_value = self.all_benchmark_returns[completed_session]
 
-            self.cumulative_risk_metrics.update(
-                completed_session,
-                self.todays_performance.returns,
-                benchmark_value,
-                account.leverage)
+            # RISK REMOVAL
+            # self.cumulative_risk_metrics.update(
+            #     completed_session,
+            #     self.todays_performance.returns,
+            #     benchmark_value,
+            #     account.leverage)
 
         # increment the day counter before we move markers forward.
         self.session_count += 1.0
@@ -455,21 +461,22 @@ class PerformanceTracker(object):
             log.info("last close: {d}".format(
                 d=self.sim_params.last_close))
 
-        bms = pd.Series(
-            index=self.cumulative_risk_metrics.cont_index,
-            data=self.cumulative_risk_metrics.benchmark_returns_cont)
-        ars = pd.Series(
-            index=self.cumulative_risk_metrics.cont_index,
-            data=self.cumulative_risk_metrics.algorithm_returns_cont)
-        acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
-
-        risk_report = risk.RiskReport(
-            ars,
-            self.sim_params,
-            benchmark_returns=bms,
-            algorithm_leverages=acl,
-            trading_calendar=self.trading_calendar,
-            treasury_curves=self.treasury_curves,
-        )
-
-        return risk_report.to_dict()
+        # bms = pd.Series(
+        #     index=self.cumulative_risk_metrics.cont_index,
+        #     data=self.cumulative_risk_metrics.benchmark_returns_cont)
+        # ars = pd.Series(
+        #     index=self.cumulative_risk_metrics.cont_index,
+        #     data=self.cumulative_risk_metrics.algorithm_returns_cont)
+        # acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
+        #
+        # risk_report = risk.RiskReport(
+        #     ars,
+        #     self.sim_params,
+        #     benchmark_returns=bms,
+        #     algorithm_leverages=acl,
+        #     trading_calendar=self.trading_calendar,
+        #     treasury_curves=self.treasury_curves,
+        # )
+        #
+        # return risk_report.to_dict()
+        return "No risk report"

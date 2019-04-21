@@ -328,7 +328,8 @@ class ExchangeTradingAlgorithmBase(TradingAlgorithm):
         )
 
         # Merging cumulative risk
-        stats.update(tracker.cumulative_risk_metrics.to_dict())
+        # RISK REMOVAL
+        # stats.update(tracker.cumulative_risk_metrics.to_dict())
 
         # Merging latest recorded variables
         stats.update(self.recorded_vars)
