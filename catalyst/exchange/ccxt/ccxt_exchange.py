@@ -741,8 +741,8 @@ class CCXT(Exchange):
 
         limit_price = price if order_type == 'limit' else None
 
-        if 'cost' in order_status and "amount" in order_status:
-            executed_price = order_status['cost'] / order_status['amount']
+        if 'cost' in order_status and filled is not None:
+            executed_price = order_status['cost'] / filled
         elif 'price' in order_status:
             executed_price = order_status['price']
         else:
