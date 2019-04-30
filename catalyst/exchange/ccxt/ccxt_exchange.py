@@ -909,8 +909,7 @@ class CCXT(Exchange):
                         amount
                     )
                 )
-        adj_amount = round(abs(amount), asset.decimals)
-        prec_amount = self.api.amount_to_precision(symbol, adj_amount)
+        prec_amount = self.api.amount_to_precision(symbol, abs(amount))
         before_order_dt = pd.Timestamp.utcnow()
         try:
             result = self.api.create_order(
