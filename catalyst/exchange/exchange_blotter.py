@@ -97,13 +97,15 @@ class TradingPairFixedSlippage(SlippageModel):
     def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
         price = data.current(asset, 'close')
+        low = data.current(asset, 'low')
+        high = data.current(asset, 'high')
 
         dt = data.current_dt
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(price, dt)
+            order.check_triggers(price, dt, low=low, high=high)
             if not order.triggered:
                 log.debug(
                     'order has not reached the trigger at current '
@@ -121,24 +123,26 @@ class TradingPairFixedSlippage(SlippageModel):
                 yield order, transaction
 
     def process_order(self, data, order):
-        price = data.current(order.asset, 'close')
+        close_price = data.current(order.asset, 'close')
 
         if order.amount > 0:
             # Buy order
             # When simulating orders, it better to assume the order was matched at the exact price
             # instead of using candle the closing price
-            if order.limit is not None and order.limit > price:
-                price = order.limit
-            adj_price = price * (1 + self.slippage)
+            if order.limit is not None:
+                adj_price = order.limit
+            else:
+                adj_price = close_price * (1 + self.slippage)
+                log.debug('added slippage to price: {} => {}'.format(close_price, adj_price))
         else:
             # Sell order
             # When simulating orders, it is better to assume the order was matched at the exact price
             # instead of using candle the closing price
-            if order.limit is not None and order.limit < price:
-                price = order.limit
-            adj_price = price * (1 - self.slippage)
-
-        log.debug('added slippage to price: {} => {}'.format(price, adj_price))
+            if order.limit is not None:
+                adj_price = order.limit
+            else:
+                adj_price = close_price * (1 - self.slippage)
+                log.debug('added slippage to price: {} => {}'.format(close_price, adj_price))
 
         return adj_price, order.amount
 
