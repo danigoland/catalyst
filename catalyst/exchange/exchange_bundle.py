@@ -36,6 +36,9 @@ log = Logger('exchange_bundle', level=LOG_LEVEL)
 
 BUNDLE_NAME_TEMPLATE = os.path.join('{root}', '{frequency}_bundle')
 
+INGEST_PAIRS_INCLUDED = set(os.getenv("INGEST_PAIRS_INCLUDED", 'btc_usdt').replace(" ", "").split(","))
+INGEST_QUOTES_INCLUDED = set(os.getenv("INGEST_PAIRS_INCLUDED", 'btc').replace(" ", "").split(","))
+
 
 def _cachpath(symbol, type_):
     return '-'.join([symbol, type_])
@@ -600,24 +603,25 @@ class ExchangeBundle:
         if show_breakdown:
             if chunks:
                 for asset in chunks:
-                    with maybe_show_progress(
-                        chunks[asset],
-                        show_progress,
-                        label='Ingesting {frequency} price data for '
-                              '{symbol} on {exchange}'.format(
-                            exchange=self.exchange_name,
-                            frequency=data_frequency,
-                            symbol=asset.symbol
-                            )) as it:
-                        for chunk in it:
-                            problems += self.ingest_ctable(
-                                asset=chunk['asset'],
-                                data_frequency=data_frequency,
-                                period=chunk['period'],
-                                writer=writer,
-                                empty_rows_behavior='strip',
-                                cleanup=True
-                            )
+                    if asset in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset):
+                        with maybe_show_progress(
+                            chunks[asset],
+                            show_progress,
+                            label='Ingesting {frequency} price data for '
+                                  '{symbol} on {exchange}'.format(
+                                exchange=self.exchange_name,
+                                frequency=data_frequency,
+                                symbol=asset.symbol
+                                )) as it:
+                            for chunk in it:
+                                problems += self.ingest_ctable(
+                                    asset=chunk['asset'],
+                                    data_frequency=data_frequency,
+                                    period=chunk['period'],
+                                    writer=writer,
+                                    empty_rows_behavior='strip',
+                                    cleanup=True
+                                )
         else:
             all_chunks = list(chain.from_iterable(itervalues(chunks)))
             # We sort the chunks by end date to ingest most recent data first
@@ -647,6 +651,13 @@ class ExchangeBundle:
             log.info('problems during ingestion:{}\n'.format(
                 '\n'.join(problems)
             ))
+
+    # noinspection PyMethodMayBeStatic
+    def _matches_included_quote(self, asset: str):
+        for quote in INGEST_QUOTES_INCLUDED:
+            if asset.endswith("_" + quote):
+                return True
+        return False
 
     def ingest_csv(self, path, data_frequency, empty_rows_behavior='strip',
                    duplicates_threshold=100):
