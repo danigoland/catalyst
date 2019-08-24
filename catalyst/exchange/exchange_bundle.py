@@ -603,7 +603,7 @@ class ExchangeBundle:
         if show_breakdown:
             if chunks:
                 for asset in chunks:
-                    if asset in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset):
+                    if asset.symbol in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset.symbol):
                         with maybe_show_progress(
                             chunks[asset],
                             show_progress,
@@ -653,9 +653,9 @@ class ExchangeBundle:
             ))
 
     # noinspection PyMethodMayBeStatic
-    def _matches_included_quote(self, asset: str):
+    def _matches_included_quote(self, symbol: str):
         for quote in INGEST_QUOTES_INCLUDED:
-            if asset.endswith("_" + quote):
+            if symbol.endswith("_" + quote):
                 return True
         return False
 
