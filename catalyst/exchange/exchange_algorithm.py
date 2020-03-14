@@ -914,6 +914,8 @@ class ExchangeTradingAlgorithmLive(ExchangeTradingAlgorithmBase):
         self._save_algo_state(data)
         self.current_day = data.current_dt.floor('1D')
 
+        log.info('Minute finished: {}', data.current_dt)
+
     def _save_algo_state(self, data):
         today = data.current_dt.floor('1D')
         try:
