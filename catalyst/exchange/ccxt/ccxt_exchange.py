@@ -40,7 +40,7 @@ SUPPORTED_EXCHANGES = dict(
     bittrex=ccxt.bittrex,
     poloniex=ccxt.poloniex,
     bitmex=ccxt.bitmex,
-    gdax=ccxt.gdax,
+    gdax=ccxt.coinbasepro,
     huobipro=ccxt.huobipro,
     okex=ccxt.okex,
     hitbtc=ccxt.hitbtc2,
@@ -743,6 +743,8 @@ class CCXT(Exchange):
 
         if 'cost' in order_status and order_status['cost'] is not None and filled is not None and filled > 0:
             executed_price = order_status['cost'] / filled
+        elif 'average' in order_status:
+            executed_price = order_status['average']
         elif 'price' in order_status:
             executed_price = order_status['price']
         else:
