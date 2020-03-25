@@ -732,10 +732,6 @@ class CCXT(Exchange):
             )
             status = ORDER_STATUS.OPEN
 
-        if order_status['side'] == 'sell':
-            amount = -amount
-            filled = -filled
-
         price = order_status['price']
         order_type = order_status['type']
 
@@ -751,6 +747,10 @@ class CCXT(Exchange):
             executed_price = None
         commission = order_status['fee']
         date = from_ms_timestamp(order_status['timestamp'])
+
+        if order_status['side'] == 'sell':
+            amount = -amount
+            filled = -filled
 
         order = Order(
             dt=date,
