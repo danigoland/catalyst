@@ -151,7 +151,8 @@ class AlgorithmSimulator(object):
             algo.account_needs_update = True
             algo.performance_needs_update = True
 
-            log.info('Minute finished: {}', dt_to_use)
+            if not algo.simulate_orders:
+                log.info('Minute finished: {}', dt_to_use)
 
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
