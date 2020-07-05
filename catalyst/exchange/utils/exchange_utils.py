@@ -802,3 +802,11 @@ def get_candles_df(candles, field, freq, bar_count, end_dt):
     df.dropna(inplace=True)
 
     return df
+
+
+def get_asset_candles_df(candles, fields):
+    asset_df = transform_candles_to_df(candles)
+    asset_df = asset_df[fields]
+    asset_df.dropna(inplace=True)
+
+    return asset_df

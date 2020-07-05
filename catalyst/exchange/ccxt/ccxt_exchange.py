@@ -589,22 +589,26 @@ class CCXT(Exchange):
             params['start_date'] = asset_def['start_date'] \
                 if 'start_date' in asset_def else None
 
-            params['end_date'] = asset_def['end_date'] \
-                if 'end_date' in asset_def else None
-
             params['leverage'] = asset_def['leverage'] \
                 if 'leverage' in asset_def else 1.0
 
             params['asset_name'] = asset_def['asset_name'] \
                 if 'asset_name' in asset_def else None
 
-            params['end_daily'] = asset_def['end_daily'] \
-                if 'end_daily' in asset_def \
-                   and asset_def['end_daily'] != 'N/A' else None
-
-            params['end_minute'] = asset_def['end_minute'] \
-                if 'end_minute' in asset_def \
-                   and asset_def['end_minute'] != 'N/A' else None
+            if market['active']:
+                now = pd.Timestamp.now('UTC').floor('D')
+                params['end_date'] = now
+                params['end_daily'] = now
+                params['end_minute'] = now
+            else:
+                params['end_date'] = asset_def['end_date'] \
+                    if 'end_date' in asset_def else None
+                params['end_daily'] = asset_def['end_daily'] \
+                    if 'end_daily' in asset_def \
+                       and asset_def['end_daily'] != 'N/A' else None
+                params['end_minute'] = asset_def['end_minute'] \
+                    if 'end_minute' in asset_def \
+                       and asset_def['end_minute'] != 'N/A' else None
 
         else:
             params['symbol'] = get_catalyst_symbol(market)

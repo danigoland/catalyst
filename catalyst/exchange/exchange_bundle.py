@@ -1,5 +1,6 @@
 import os
 import shutil
+import time
 from datetime import timedelta
 from functools import partial
 from itertools import chain
@@ -25,7 +26,7 @@ from catalyst.exchange.utils.bundle_utils import range_in_bundle, \
 from catalyst.exchange.utils.datetime_utils import get_start_dt, \
     get_period_label, get_month_start_end, get_year_start_end
 from catalyst.exchange.utils.exchange_utils import get_exchange_folder, \
-    save_exchange_symbols, mixin_market_params, get_catalyst_symbol
+    save_exchange_symbols, mixin_market_params, get_catalyst_symbol, get_asset_candles_df
 from catalyst.utils.cli import maybe_show_progress
 from catalyst.utils.paths import ensure_directory
 from logbook import Logger
@@ -37,7 +38,8 @@ log = Logger('exchange_bundle', level=LOG_LEVEL)
 BUNDLE_NAME_TEMPLATE = os.path.join('{root}', '{frequency}_bundle')
 
 INGEST_PAIRS_INCLUDED = set(os.getenv("INGEST_PAIRS_INCLUDED", 'btc_usdt').replace(" ", "").split(","))
-INGEST_QUOTES_INCLUDED = set(os.getenv("INGEST_PAIRS_INCLUDED", 'btc').replace(" ", "").split(","))
+INGEST_QUOTES_INCLUDED = set(os.getenv("INGEST_QUOTES_INCLUDED", 'btc').replace(" ", "").split(","))
+DOWNLOAD_REQUEST_DELAY = float(os.getenv("DOWNLOAD_REQUEST_DELAY", '0'))
 
 
 def _cachpath(symbol, type_):
@@ -235,12 +237,12 @@ class ExchangeBundle:
 
                 problem = '{name} ({start_dt} to {end_dt}) has empty ' \
                           'periods: {dates}'.format(
-                                name=asset.symbol,
-                                start_dt=asset.start_date.strftime(
-                                    DATE_TIME_FORMAT),
-                                end_dt=end_dt.strftime(DATE_TIME_FORMAT),
-                                dates=[date.strftime(
-                                    DATE_TIME_FORMAT) for date in dates])
+                    name=asset.symbol,
+                    start_dt=asset.start_date.strftime(
+                        DATE_TIME_FORMAT),
+                    end_dt=end_dt.strftime(DATE_TIME_FORMAT),
+                    dates=[date.strftime(
+                        DATE_TIME_FORMAT) for date in dates])
 
                 if empty_rows_behavior == 'warn':
                     log.warn(problem)
@@ -289,12 +291,12 @@ class ExchangeBundle:
 
             problem = '{name} ({start_dt} to {end_dt}) has {threshold} ' \
                       'identical close values on: {dates}'.format(
-                        name=asset.symbol,
-                        start_dt=asset.start_date.strftime(DATE_TIME_FORMAT),
-                        end_dt=end_dt.strftime(DATE_TIME_FORMAT),
-                        threshold=threshold,
-                        dates=[pd.to_datetime(date).strftime(DATE_TIME_FORMAT)
-                               for date in dates])
+                name=asset.symbol,
+                start_dt=asset.start_date.strftime(DATE_TIME_FORMAT),
+                end_dt=end_dt.strftime(DATE_TIME_FORMAT),
+                threshold=threshold,
+                dates=[pd.to_datetime(date).strftime(DATE_TIME_FORMAT)
+                       for date in dates])
 
             problems.append(problem)
 
@@ -336,7 +338,7 @@ class ExchangeBundle:
 
     def ingest_ctable(self, asset, data_frequency, period,
                       writer, empty_rows_behavior='strip',
-                      duplicates_threshold=100, cleanup=False):
+                      duplicates_threshold=100, cleanup=False, from_exchange=False):
         """
         Merge a ctable bundle chunk into the main bundle for the exchange.
 
@@ -360,6 +362,72 @@ class ExchangeBundle:
         """
         problems = []
 
+        if from_exchange:
+            df = self.download_from_exchange(asset, data_frequency, period)
+        else:
+            df, reader = self.download_from_catalyst(asset, data_frequency, period)
+
+        problems += self.ingest_df(
+            ohlcv_df=df,
+            data_frequency=data_frequency,
+            asset=asset,
+            writer=writer,
+            empty_rows_behavior=empty_rows_behavior,
+            duplicates_threshold=duplicates_threshold
+        )
+
+        if not from_exchange and cleanup:
+            self.cleanup_catalyst_download(reader)
+
+        return filter(partial(is_not, None), problems)
+
+    def download_from_exchange(self, asset, data_frequency, period):
+        if data_frequency != 'minute':
+            raise Exception(
+                "data frequency '{}' is not supported yet for exchange data download".format(data_frequency))
+
+        if self.exchange is None:
+            # Avoid circular dependencies
+            from catalyst.exchange.utils.factory import get_exchange
+            self.exchange = get_exchange(self.exchange_name)
+
+        pd_period = pd.Period(period)
+        start_dt = pd_period.start_time.tz_localize('UTC')
+        now = pd.Timestamp.now('UTC')
+        total_minutes = round(((pd_period.end_time - pd_period.start_time).total_seconds() / 60))
+        candles = []
+        minutes_to_fetch = total_minutes
+        fetched_minutes = 0
+
+        while minutes_to_fetch > 0:
+            request_start_date = start_dt + timedelta(minutes=fetched_minutes)
+            if request_start_date > now:
+                break
+
+            if fetched_minutes > 0:
+                time.sleep(DOWNLOAD_REQUEST_DELAY)
+
+            request_size = 1000 if minutes_to_fetch > 1000 else minutes_to_fetch
+
+            results = self.exchange.get_candles(freq='1T',
+                                                assets=asset,
+                                                start_dt=request_start_date,
+                                                bar_count=request_size)
+            minutes_to_fetch -= request_size
+            fetched_minutes += request_size
+            candles.extend(results)
+
+        df = get_asset_candles_df(candles=candles, fields=['open', 'high', 'low', 'close', 'volume'])
+        return df
+
+    def cleanup_catalyst_download(self, reader):
+        log.debug(
+            'removing bundle folder following ingestion: {}'.format(
+                reader._rootdir)
+        )
+        shutil.rmtree(reader._rootdir)
+
+    def download_from_catalyst(self, asset, data_frequency, period):
         # Download and extract the bundle
         path = get_bcolz_chunk(
             exchange_name=self.exchange_name,
@@ -405,24 +473,7 @@ class ExchangeBundle:
         periods = self.get_calendar_periods_range(
             start_dt, end_dt, data_frequency
         )
-        df = get_df_from_arrays(arrays, periods)
-        problems += self.ingest_df(
-            ohlcv_df=df,
-            data_frequency=data_frequency,
-            asset=asset,
-            writer=writer,
-            empty_rows_behavior=empty_rows_behavior,
-            duplicates_threshold=duplicates_threshold
-        )
-
-        if cleanup:
-            log.debug(
-                'removing bundle folder following ingestion: {}'.format(
-                    reader._rootdir)
-            )
-            shutil.rmtree(reader._rootdir)
-
-        return filter(partial(is_not, None), problems)
+        return get_df_from_arrays(arrays, periods), reader
 
     def get_adj_dates(self, start, end, assets, data_frequency):
         """
@@ -562,7 +613,7 @@ class ExchangeBundle:
 
     def ingest_assets(self, assets, data_frequency, start_dt=None, end_dt=None,
                       show_progress=False, show_breakdown=False,
-                      show_report=False):
+                      show_report=False, from_exchange=False):
         """
         Determine if data is missing from the bundle and attempt to ingest it.
 
@@ -605,13 +656,13 @@ class ExchangeBundle:
                 for asset in chunks:
                     if asset.symbol in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset.symbol):
                         with maybe_show_progress(
-                            chunks[asset],
-                            show_progress,
-                            label='Ingesting {frequency} price data for '
-                                  '{symbol} on {exchange}'.format(
-                                exchange=self.exchange_name,
-                                frequency=data_frequency,
-                                symbol=asset.symbol
+                                chunks[asset],
+                                show_progress,
+                                label='Ingesting {frequency} price data for '
+                                      '{symbol} on {exchange}'.format(
+                                    exchange=self.exchange_name,
+                                    frequency=data_frequency,
+                                    symbol=asset.symbol
                                 )) as it:
                             for chunk in it:
                                 problems += self.ingest_ctable(
@@ -620,7 +671,8 @@ class ExchangeBundle:
                                     period=chunk['period'],
                                     writer=writer,
                                     empty_rows_behavior='strip',
-                                    cleanup=True
+                                    cleanup=True,
+                                    from_exchange=from_exchange
                                 )
         else:
             all_chunks = list(chain.from_iterable(itervalues(chunks)))
@@ -630,12 +682,12 @@ class ExchangeBundle:
                     key=lambda chunk: pd.to_datetime(chunk['period'])
                 )
                 with maybe_show_progress(
-                    all_chunks,
-                    show_progress,
-                    label='Ingesting {frequency} price data on '
-                          '{exchange}'.format(
-                        exchange=self.exchange_name,
-                        frequency=data_frequency,
+                        all_chunks,
+                        show_progress,
+                        label='Ingesting {frequency} price data on '
+                              '{exchange}'.format(
+                            exchange=self.exchange_name,
+                            frequency=data_frequency,
                         )) as it:
                     for chunk in it:
                         problems += self.ingest_ctable(
@@ -644,7 +696,8 @@ class ExchangeBundle:
                             period=chunk['period'],
                             writer=writer,
                             empty_rows_behavior='strip',
-                            cleanup=True
+                            cleanup=True,
+                            from_exchange=from_exchange
                         )
 
         if show_report and len(problems) > 0:
@@ -797,7 +850,7 @@ class ExchangeBundle:
 
     def ingest(self, data_frequency, include_symbols=None,
                exclude_symbols=None, start=None, end=None, csv=None,
-               show_progress=True, show_breakdown=True, show_report=True):
+               show_progress=True, show_breakdown=True, show_report=True, from_exchange=False):
         """
         Inject data based on specified parameters.
 
@@ -812,9 +865,12 @@ class ExchangeBundle:
         environ:
 
         """
+
+        if from_exchange:
+            log.warning("Ingesting data directly from the exchange: '{}'", self.exchange_name)
+
         if csv is not None:
             self.ingest_csv(csv, data_frequency)
-
         else:
             if self.exchange is None:
                 # Avoid circular dependencies
@@ -832,7 +888,8 @@ class ExchangeBundle:
                     end_dt=end,
                     show_progress=show_progress,
                     show_breakdown=show_breakdown,
-                    show_report=show_report
+                    show_report=show_report,
+                    from_exchange=from_exchange
                 )
 
     def get_history_window_series_and_load(self,
