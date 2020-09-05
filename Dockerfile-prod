@@ -39,8 +39,7 @@ RUN pip install 'numpy==1.14.0' \
   && ./configure --prefix=/usr \
   && make \
   && make install \
-  && pip install TA-Lib \
-  && pip install matplotlib
+  && pip install TA-Lib==0.4.9
 
 #
 # build and install the catalyst package into the image
