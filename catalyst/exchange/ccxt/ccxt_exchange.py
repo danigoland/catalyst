@@ -597,9 +597,11 @@ class CCXT(Exchange):
 
             if market['active']:
                 now = pd.Timestamp.now('UTC').floor('D')
-                params['end_date'] = now
-                params['end_daily'] = now
-                params['end_minute'] = now
+                delta = pd.Timedelta('1000D')
+                end_date = now + delta
+                params['end_date'] = end_date
+                params['end_daily'] = end_date
+                params['end_minute'] = end_date
             else:
                 params['end_date'] = asset_def['end_date'] \
                     if 'end_date' in asset_def else None
