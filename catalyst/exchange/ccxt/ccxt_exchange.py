@@ -421,7 +421,7 @@ class CCXT(Exchange):
         )
 
     def get_candles(self, freq, assets, bar_count=1, start_dt=None,
-                    end_dt=None):
+                    end_dt=None, keep_empty_start=False):
         is_single = (isinstance(assets, TradingPair))
         if is_single:
             assets = [assets]
@@ -442,7 +442,7 @@ class CCXT(Exchange):
                 'Please provide either start_dt or end_dt, not both.'
             )
 
-        if start_dt is None:
+        if start_dt is None and not keep_empty_start:
             if end_dt is None:
                 end_dt = pd.Timestamp.utcnow()
 
@@ -453,8 +453,11 @@ class CCXT(Exchange):
             )
             start_dt = dt_range[0]
 
-        delta = start_dt - get_epoch()
-        since = int(delta.total_seconds()) * 1000
+        if start_dt is not None:
+            delta = start_dt - get_epoch()
+            since = int(delta.total_seconds()) * 1000
+        else:
+            since = None
 
         candles = dict()
         for index, asset in enumerate(assets):
@@ -520,9 +523,8 @@ class CCXT(Exchange):
         """
         asset_defs = []
 
-        for is_local in (False, True):
-            asset_def = self.get_asset_def(market, is_local)
-            asset_defs.append((asset_def, is_local))
+        asset_def = self.get_asset_def(market, True)
+        asset_defs.append((asset_def, True))
 
         return asset_defs
 

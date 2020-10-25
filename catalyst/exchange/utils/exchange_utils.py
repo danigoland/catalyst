@@ -169,6 +169,14 @@ def get_exchange_symbols(exchange_name, is_local=False):
         )
 
 
+def save_exchange_symbols_dicts(exchange_name, asset_dicts, is_local=False):
+    filename = get_exchange_symbols_filename(
+        exchange_name, is_local
+    )
+    with open(filename, 'wt') as handle:
+        json.dump(asset_dicts, handle, indent=4, default=symbols_serial)
+
+
 def save_exchange_symbols(exchange_name, assets, is_local=False):
     """
     Save assets into an exchange_symbols file.

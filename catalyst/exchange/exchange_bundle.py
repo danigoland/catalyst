@@ -880,6 +880,9 @@ class ExchangeBundle:
             assets = get_assets(
                 self.exchange, include_symbols, exclude_symbols
             )
+
+            self.update_symbols_file(assets)
+
             for frequency in data_frequency.split(','):
                 self.ingest_assets(
                     assets=assets,
@@ -891,6 +894,63 @@ class ExchangeBundle:
                     show_report=show_report,
                     from_exchange=from_exchange
                 )
+
+    def update_symbols_file(self, assets):
+        if self.exchange is None:
+            # Avoid circular dependencies
+            from catalyst.exchange.utils.factory import get_exchange
+            self.exchange = get_exchange(self.exchange_name)
+
+        # check if the symbols.json file was updated today
+        root = get_exchange_folder(self.exchange_name)
+        timestamp = os.path.getmtime(os.path.join(root, 'symbols.json'))
+        dt = pd.to_datetime(timestamp, unit='s', utc=True)
+        if dt >= pd.Timestamp.utcnow().floor('1D'):
+            return
+
+        log.info("updating symbols.json")
+
+        results = {}
+        for asset in assets:
+            if asset.symbol in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset.symbol):
+                try:
+                    end_results = self.exchange.get_candles(freq='1H',
+                                                            assets=asset,
+                                                            start_dt=None,
+                                                            end_dt=None,
+                                                            bar_count=1,
+                                                            keep_empty_start=True)
+                    if len(end_results) == 0:
+                        raise Exception("no end cancles found for {}", asset.symbol)
+
+                    last_date = end_results[-1]['last_traded'].floor('1D')
+
+                    start_results = self.exchange.get_candles(freq='1D',
+                                                              assets=asset,
+                                                              start_dt=pd.Timestamp("2009-01-01", tz='utc'),
+                                                              end_dt=None,
+                                                              bar_count=1,
+                                                              keep_empty_start=True)
+                    if len(start_results) == 0:
+                        raise Exception("no start cancles found for {}", asset.symbol)
+                    first_date = start_results[-1]['last_traded'].floor('1D')
+
+                    symbol_dates = {
+                        'end_minute': last_date,
+                        'end_daily': last_date,
+                        'start_date': first_date,
+                        'symbol': asset.symbol
+                    }
+
+                    log.info("updated {} symbol", asset.symbol)
+
+                    results[asset.exchange_symbol] = symbol_dates
+
+                except:
+                    log.exception("error building symbol dates for {}".format(asset.symbol))
+                    pass
+
+        save_exchange_symbols_dicts(self.exchange_name, results)
 
     def get_history_window_series_and_load(self,
                                            assets,
