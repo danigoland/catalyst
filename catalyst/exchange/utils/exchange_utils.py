@@ -10,7 +10,7 @@ from catalyst.assets._assets import TradingPair
 from six import string_types
 from six.moves.urllib import request
 
-from catalyst.constants import DATE_FORMAT, SYMBOLS_URL
+from catalyst.constants import DATE_FORMAT
 from catalyst.exchange.exchange_errors import ExchangeSymbolsNotFound
 from catalyst.exchange.utils.serialization_utils import ExchangeJSONEncoder, \
     ExchangeJSONDecoder
@@ -109,26 +109,6 @@ def get_exchange_symbols_filename(exchange_name, is_local=False):
     return os.path.join(exchange_folder, name)
 
 
-def download_exchange_symbols(exchange_name):
-    """
-    Downloads the exchange's symbols.json from the repository.
-
-    Parameters
-    ----------
-    exchange_name: str
-    environ:
-
-    Returns
-    -------
-    str
-
-    """
-    filename = get_exchange_symbols_filename(exchange_name)
-    url = SYMBOLS_URL.format(exchange=exchange_name)
-    response = request.urlretrieve(url=url, filename=filename)
-    return response
-
-
 def get_exchange_symbols(exchange_name, is_local=False):
     """
     The de-serialized content of the exchange's symbols.json.
@@ -145,14 +125,6 @@ def get_exchange_symbols(exchange_name, is_local=False):
 
     """
     filename = get_exchange_symbols_filename(exchange_name, is_local)
-
-    if not is_local and (not os.path.isfile(filename) or pd.Timedelta(
-            pd.Timestamp('now', tz='UTC') - last_modified_time(
-            filename)).days > 1):
-        try:
-            download_exchange_symbols(exchange_name)
-        except Exception:
-            pass
 
     if os.path.isfile(filename):
         with open(filename) as data_file:
