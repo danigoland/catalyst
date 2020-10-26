@@ -25,8 +25,8 @@ from catalyst.exchange.utils.bundle_utils import range_in_bundle, \
     get_bcolz_chunk, get_df_from_arrays, get_assets
 from catalyst.exchange.utils.datetime_utils import get_start_dt, \
     get_period_label, get_month_start_end, get_year_start_end
-from catalyst.exchange.utils.exchange_utils import get_exchange_folder, \
-    save_exchange_symbols, mixin_market_params, get_catalyst_symbol, get_asset_candles_df
+from catalyst.exchange.utils.exchange_utils import get_exchange_folder, save_exchange_symbols_dicts, \
+    save_exchange_symbols, mixin_market_params, get_catalyst_symbol, get_asset_candles_df, get_exchange_symbols
 from catalyst.utils.cli import maybe_show_progress
 from catalyst.utils.paths import ensure_directory
 from logbook import Logger
@@ -904,15 +904,31 @@ class ExchangeBundle:
         # check if the symbols.json file was updated today
         root = get_exchange_folder(self.exchange_name)
         timestamp = os.path.getmtime(os.path.join(root, 'symbols.json'))
-        dt = pd.to_datetime(timestamp, unit='s', utc=True)
-        if dt >= pd.Timestamp.utcnow().floor('1D'):
-            return
+        file_dt = pd.to_datetime(timestamp, unit='s', utc=True)
 
         log.info("updating symbols.json")
+
+        existing_symbols_defs = get_exchange_symbols(self.exchange_name)
+        self.exchange.api.load_markets()
 
         results = {}
         for asset in assets:
             if asset.symbol in INGEST_PAIRS_INCLUDED or self._matches_included_quote(asset.symbol):
+                if asset.exchange_symbol in existing_symbols_defs:
+                    existing_def = existing_symbols_defs[asset.exchange_symbol]
+                    if self.exchange.api.markets[asset.asset_name.replace(' ', '')]['active']:
+                        end_date = pd.Timestamp.utcnow().floor('1D')
+                        existing_def['end_minute'] = end_date
+                        existing_def['end_daily'] = end_date
+                        log.debug("updated {} symbol -> [still active]", asset.symbol)
+                        results[asset.exchange_symbol] = existing_def
+                        continue
+                    elif pd.Timestamp(existing_def['end_daily']) < file_dt.floor('1D'):
+                        log.debug("updated {} symbol -> [already delisted]", asset.symbol)
+                        results[asset.exchange_symbol] = existing_def
+                        continue
+
+                # either the symbol is new or it has been delisted since the last update
                 try:
                     end_results = self.exchange.get_candles(freq='1H',
                                                             assets=asset,
@@ -942,8 +958,10 @@ class ExchangeBundle:
                         'symbol': asset.symbol
                     }
 
-                    log.info("updated {} symbol", asset.symbol)
-
+                    if last_date != pd.Timestamp.utcnow().floor('1D'):
+                        log.info("updated {} symbol [new delisted]", asset.symbol)
+                    else:
+                        log.info("updated {} symbol [new listed]", asset.symbol)
                     results[asset.exchange_symbol] = symbol_dates
 
                 except:

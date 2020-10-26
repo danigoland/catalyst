@@ -523,8 +523,9 @@ class CCXT(Exchange):
         """
         asset_defs = []
 
-        asset_def = self.get_asset_def(market, True)
-        asset_defs.append((asset_def, True))
+        for is_local in (False, True):
+            asset_def = self.get_asset_def(market, is_local)
+            asset_defs.append((asset_def, is_local))
 
         return asset_defs
 
