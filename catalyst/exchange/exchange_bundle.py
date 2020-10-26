@@ -413,8 +413,9 @@ class ExchangeBundle:
                                                 assets=asset,
                                                 start_dt=request_start_date,
                                                 bar_count=request_size)
-            minutes_to_fetch -= request_size
-            fetched_minutes += request_size
+            minutes_diff = int(int((results[-1]['last_traded'] - request_start_date).total_seconds()) / 60) + 1
+            minutes_to_fetch -= minutes_diff
+            fetched_minutes += minutes_diff
             candles.extend(results)
 
         df = get_asset_candles_df(candles=candles, fields=['open', 'high', 'low', 'close', 'volume'])
@@ -881,7 +882,7 @@ class ExchangeBundle:
                 self.exchange, include_symbols, exclude_symbols
             )
 
-            self.update_symbols_file(assets)
+            self.update_symbols_file(get_assets(self.exchange, None, None))
 
             for frequency in data_frequency.split(','):
                 self.ingest_assets(
