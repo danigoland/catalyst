@@ -20,7 +20,7 @@ from catalyst.exchange.exchange_bcolz import BcolzExchangeBarReader, \
 from catalyst.exchange.exchange_errors import EmptyValuesInBundleError, \
     TempBundleNotFoundError, \
     NoDataAvailableOnExchange, \
-    PricingDataNotLoadedError, DataCorruptionError, PricingDataValueError
+    PricingDataNotLoadedError, DataCorruptionError, PricingDataValueError, ExchangeSymbolsNotFound
 from catalyst.exchange.utils.bundle_utils import range_in_bundle, \
     get_bcolz_chunk, get_df_from_arrays, get_assets
 from catalyst.exchange.utils.datetime_utils import get_start_dt, \
@@ -903,13 +903,19 @@ class ExchangeBundle:
             self.exchange = get_exchange(self.exchange_name)
 
         # check if the symbols.json file was updated today
-        root = get_exchange_folder(self.exchange_name)
-        timestamp = os.path.getmtime(os.path.join(root, 'symbols.json'))
-        file_dt = pd.to_datetime(timestamp, unit='s', utc=True)
+        try:
+            root = get_exchange_folder(self.exchange_name)
+            timestamp = os.path.getmtime(os.path.join(root, 'symbols.json'))
+            file_dt = pd.to_datetime(timestamp, unit='s', utc=True)
+        except FileNotFoundError:
+            file_dt = None
 
         log.info("updating symbols.json")
 
-        existing_symbols_defs = get_exchange_symbols(self.exchange_name)
+        try:
+            existing_symbols_defs = get_exchange_symbols(self.exchange_name)
+        except ExchangeSymbolsNotFound:
+            existing_symbols_defs = {}
         self.exchange.api.load_markets()
 
         results = {}
@@ -924,7 +930,7 @@ class ExchangeBundle:
                         log.debug("updated {} symbol -> [still active]", asset.symbol)
                         results[asset.exchange_symbol] = existing_def
                         continue
-                    elif pd.Timestamp(existing_def['end_daily']) < file_dt.floor('1D'):
+                    elif file_dt is not None and pd.Timestamp(existing_def['end_daily']) < file_dt.floor('1D'):
                         log.debug("updated {} symbol -> [already delisted]", asset.symbol)
                         results[asset.exchange_symbol] = existing_def
                         continue
