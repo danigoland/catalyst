@@ -413,6 +413,8 @@ class ExchangeBundle:
                                                 assets=asset,
                                                 start_dt=request_start_date,
                                                 bar_count=request_size)
+            if len(results) == 0:
+                break
             minutes_diff = int(int((results[-1]['last_traded'] - request_start_date).total_seconds()) / 60) + 1
             minutes_to_fetch -= minutes_diff
             fetched_minutes += minutes_diff
