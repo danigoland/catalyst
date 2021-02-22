@@ -10,10 +10,9 @@ dependencies:
 - mkl=2018.0.1
 - openssl=1.0.2n
 - matplotlib=2.2.2
-- pip=9.0.1
+- pip=20.2.2
 - python=3.6.4
 - scipy=1.0.0
-- setuptools=38.4.0=py36_0
 - sqlite=3.22.0
 - tk=8.6.7
 - wheel=0.30.0
@@ -22,6 +21,7 @@ dependencies:
 - bcolz=1.2.1
 - cchardet=2.1.1
 - pip:
+  - setuptools==50.0.0
   - numpy==1.14.0
   - aiodns==1.1.1
   - aiohttp==3.0.1
