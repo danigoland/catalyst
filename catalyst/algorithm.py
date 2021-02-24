@@ -1910,6 +1910,8 @@ class TradingAlgorithm(object):
     def _calculate_order_target_amount(self, asset, target):
         if asset in self.portfolio.positions:
             current_position = self.portfolio.positions[asset].amount
+            if current_position < 0:
+                raise Exception("asset {} has a negative position: {}".format(asset.symbol, current_position))
             target -= current_position
 
         return target
