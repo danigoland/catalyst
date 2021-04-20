@@ -206,14 +206,14 @@ class MaxOrderSize(TradingControl):
         if self.asset is not None and self.asset != asset:
             return
 
-        if self.max_shares is not None and abs(amount) > self.max_shares:
+        if self.max_shares is not None and amount > self.max_shares:
             self.handle_violation(asset, amount, algo_datetime)
 
         current_asset_price = algo_current_data.current(asset, "price")
         order_value = amount * current_asset_price
 
         too_much_value = (self.max_notional is not None and
-                          abs(order_value) > self.max_notional)
+                          order_value > self.max_notional)
 
         if too_much_value:
             self.handle_violation(asset, amount, algo_datetime)
