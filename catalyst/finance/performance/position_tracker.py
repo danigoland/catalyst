@@ -148,7 +148,6 @@ class PositionTracker(object):
             position.last_sale_date = last_sale_date
         if cost_basis is not None:
             position.cost_basis = cost_basis
-        self.remove_position_if_empty(position)
 
     def execute_transaction(self, txn):
         # Update Position
@@ -159,7 +158,6 @@ class PositionTracker(object):
         if not self.is_simulation and txn.amount < 0:
             if asset in self.positions:
                 position = self.positions[asset]
-                self.remove_position_if_empty(position)
             return
 
         if asset not in self.positions:
@@ -170,9 +168,14 @@ class PositionTracker(object):
 
         position.update(txn)
 
-        self.remove_position_if_empty(position)
+    def remove_asset_position_if_empty(self, asset):
+        if asset not in self.positions:
+            return
 
-    def remove_position_if_empty(self, position):
+        position = self.positions[asset]
+        self._remove_position_if_empty(position)
+
+    def _remove_position_if_empty(self, position):
         if position.amount == 0 \
                 or \
                 (position.asset.quote_currency == 'btc'
