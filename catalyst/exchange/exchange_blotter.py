@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import os
+import asyncio
+import concurrent.futures
 from logbook import Logger
 from redo import retry
 
@@ -170,6 +173,11 @@ class ExchangeBlotter(Blotter):
             TradingPair: TradingPairFeeSchedule()
         }
 
+        self.event_loop = asyncio.get_event_loop()
+        self.executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=int(float(os.getenv("PARALLEL_CALLS", "8"))),
+        )
+
     def exchange_order(self, asset, amount, style=None):
         exchange = self.exchanges[asset.exchange]
         return exchange.order(
@@ -215,62 +223,70 @@ class ExchangeBlotter(Blotter):
         list[Transaction]
 
         """
+        futures = []
+
         for asset in self.open_orders:
             exchange = self.exchanges[asset.exchange]
 
-            for order in self.open_orders[asset]:
-                log.debug('found open order: {}'.format(order.id))
+            futures.extend([self.event_loop.run_in_executor(self.executor, self.get_transactions_for_order,
+                                                            asset.symbol, exchange, order)
+                            for order in self.open_orders[asset]])
 
-                try:
-                    transactions = retry(
-                        action=exchange.process_order,
-                        attempts=self.attempts['get_transactions_attempts'],
-                        sleeptime=self.attempts['retry_sleeptime'],
-                        retry_exceptions=(ExchangeRequestError,),
-                        cleanup=lambda: log.warn('Error fetching order {}. Trying again.', order.id),
-                        args=(order,)
-                    )
-                except ExchangeRequestError as e:
-                    log.warn("Multiple errors checking order status. Moving on!! {}", order)
-                    transactions = []
-                # This is a temporary measure, we should really update all
-                # trades, not just when the order gets filled. I just think
-                # that this is safer until we have a robust way to track
-                # the trades already processed by the algo. We can't loose
-                # them if the algo shuts down.
-                if transactions and (order.status == ORDER_STATUS.FILLED
-                                     or (order.status == ORDER_STATUS.CANCELLED and order.filled != 0)):
-                    avg_price = np.average(
-                        a=[t.price for t in transactions],
-                        weights=[t.amount for t in transactions],
-                    )
-                    ostatus = 'filled' if order.open_amount == 0 else 'partial'
-                    log.info(
-                        '{} order {} / {}: {}, avg price: {}'.format(
-                            ostatus,
-                            order.id,
-                            asset.symbol,
-                            order.filled,
-                            avg_price,
-                        )
-                    )
-                    for transaction in transactions:
-                        yield order, transaction
+        async_results = asyncio.gather(*futures, loop=self.event_loop)
+        return [txn for txn in self.event_loop.run_until_complete(async_results) if txn is not None]
 
-                elif order.status == ORDER_STATUS.CANCELLED:
-                    yield order, None
+    def get_transactions_for_order(self, symbol, exchange, order):
+        log.debug('found open order: {}'.format(order.id))
+        try:
+            transactions = retry(
+                action=exchange.process_order,
+                attempts=self.attempts['get_transactions_attempts'],
+                sleeptime=self.attempts['retry_sleeptime'],
+                retry_exceptions=(ExchangeRequestError,),
+                cleanup=lambda: log.warn('Error fetching order {}. Trying again.', order.id),
+                args=(order,)
+            )
+        except ExchangeRequestError as e:
+            log.warn("Multiple errors checking order status. Moving on!! {}", order)
+            transactions = []
+        # This is a temporary measure, we should really update all
+        # trades, not just when the order gets filled. I just think
+        # that this is safer until we have a robust way to track
+        # the trades already processed by the algo. We can't loose
+        # them if the algo shuts down.
+        if transactions and (order.status == ORDER_STATUS.FILLED
+                             or (order.status == ORDER_STATUS.CANCELLED and order.filled != 0)):
+            avg_price = np.average(
+                a=[t.price for t in transactions],
+                weights=[t.amount for t in transactions],
+            )
+            ostatus = 'filled' if order.open_amount == 0 else 'partial'
+            log.info(
+                '{} order {} / {}: {}, avg price: {}'.format(
+                    ostatus,
+                    order.id,
+                    symbol,
+                    order.filled,
+                    avg_price,
+                )
+            )
+            for transaction in transactions:
+                return order, transaction
 
-                else:
-                    delta = pd.Timestamp.utcnow() - order.dt
-                    log.info(
-                        '{exchange} order {order_id} for {symbol} still open '
-                        'after {delta}'.format(
-                            exchange=exchange.name,
-                            order_id=order.id,
-                            delta=delta,
-                            symbol=order.asset.symbol,
-                        )
-                    )
+        elif order.status == ORDER_STATUS.CANCELLED:
+            return order, None
+
+        else:
+            delta = pd.Timestamp.utcnow() - order.dt
+            log.info(
+                '{exchange} order {order_id} for {symbol} still open '
+                'after {delta}'.format(
+                    exchange=exchange.name,
+                    order_id=order.id,
+                    delta=delta,
+                    symbol=symbol,
+                )
+            )
 
     def get_exchange_transactions(self):
         closed_orders = []
