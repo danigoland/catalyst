@@ -76,14 +76,14 @@ class ExchangeTradingAlgorithmBase(TradingAlgorithm):
 
         # Operations with retry features
         self.attempts = dict(
-            get_transactions_attempts=3,
-            order_attempts=3,
+            get_transactions_attempts=2,
+            order_attempts=2,
             synchronize_portfolio_attempts=3,
-            get_order_attempts=3,
+            get_order_attempts=2,
             get_open_orders_attempts=3,
             cancel_order_attempts=3,
-            get_spot_value_attempts=3,
-            get_history_window_attempts=3,
+            get_spot_value_attempts=2,
+            get_history_window_attempts=2,
             retry_sleeptime=2,
             get_orderbook_attempts=3,
         )

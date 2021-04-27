@@ -769,7 +769,8 @@ class CCXT(Exchange):
             limit=limit_price,
             filled=filled,
             id=order_id,
-            commission=commission
+            commission=commission,
+            matched_price=executed_price
         )
         order.status = status
 
@@ -1063,6 +1064,8 @@ class CCXT(Exchange):
         order.status = exc_order.status
         order.commission = exc_order.commission
         order.filled = exc_order.filled
+        order.matched_price = price
+        order.dt = exc_order.dt
 
         transactions = []
         if exc_order.status == ORDER_STATUS.FILLED or \
@@ -1081,7 +1084,7 @@ class CCXT(Exchange):
             )
             transaction = Transaction(
                 asset=order.asset,
-                amount=exc_order.amount,
+                amount=exc_order.filled,
                 dt=pd.Timestamp.utcnow(),
                 price=price,
                 order_id=order.id,
@@ -1092,80 +1095,79 @@ class CCXT(Exchange):
         return transactions
 
     def process_order(self, order):
-        # TODO: move to parent class after tracking features in the parent
-        if not self.api.has['fetchMyTrades']:
-            return self._process_order_fallback(order)
+        # we are not using the transactions details so lets just use the order data
+        return self._process_order_fallback(order)
 
-        try:
-            all_trades = self.get_trades(order.asset)
-            exc_order = self.get_order(order.id, order.asset, return_price=False, params={'type': order.direction_type})
-            order.status = exc_order.status
-        except RequestTimeout as e:
-            raise ExchangeRequestError(error="Received timeout from exchange")
-        except ExchangeRequestError as e:
-            log.warn(
-                'unable to fetch account trades, trying an alternate '
-                'method to find executed order {} / {}: {}'.format(
-                    order.id, order.asset.symbol, e
-                )
-            )
-            return self._process_order_fallback(order)
+        # try:
+        #     all_trades = self.get_trades(order.asset)
+        #     exc_order = self.get_order(order.id, order.asset, return_price=False, params={'type': order.direction_type})
+        #     order.status = exc_order.status
+        # except RequestTimeout as e:
+        #     raise ExchangeRequestError(error="Received timeout from exchange")
+        # except ExchangeRequestError as e:
+        #     log.warn(
+        #         'unable to fetch account trades, trying an alternate '
+        #         'method to find executed order {} / {}: {}'.format(
+        #             order.id, order.asset.symbol, e
+        #         )
+        #     )
+        #     return self._process_order_fallback(order)
 
-        transactions = []
-        trades = [t for t in all_trades if t['order'] == order.id]
-        if not trades:
-            log.debug(
-                'order {} / {} not found in trades'.format(
-                    order.id, order.asset.symbol
-                )
-            )
-            return transactions
+        # transactions = []
+        # trades = [t for t in all_trades if t['order'] == order.id]
+        # if not trades:
+        #     log.debug(
+        #         'order {} / {} not found in trades'.format(
+        #             order.id, order.asset.symbol
+        #         )
+        #     )
+        #     return transactions
 
-        trades.sort(key=lambda t: t['timestamp'], reverse=False)
-        order.filled = 0
-        order.commission = 0
-        for trade in trades:
-            # status property will update automatically
-            filled = trade['amount'] * order.direction
-            order.filled += filled
+        # trades.sort(key=lambda t: t['timestamp'], reverse=False)
+        # order.filled = 0
+        # order.commission = 0
+        # for trade in trades:
+        #     # status property will update automatically
+        #     filled = trade['amount'] * order.direction
+        #     order.filled += filled
 
-            order.check_triggers(
-                price=trade['price'],
-                dt=pd.to_datetime(trade['timestamp'], unit='ms', utc=True),
-            )
+        #     order.check_triggers(
+        #         price=trade['price'],
+        #         dt=pd.to_datetime(trade['timestamp'], unit='ms', utc=True),
+        #     )
 
-            commission = 0
-            if 'fee' in trade and 'cost' in trade['fee']:
-                # If the exchange gives info of the fees- from ccxt
-                commission = trade['fee']['cost']
-                order.commission += commission
+        #     commission = 0
+        #     if 'fee' in trade and 'cost' in trade['fee']:
+        #         # If the exchange gives info of the fees- from ccxt
+        #         commission = trade['fee']['cost']
+        #         order.commission += commission
 
-            if 'fee' in trade and 'currency' in trade['fee']:
-                transaction = Transaction(
-                    asset=order.asset,
-                    amount=filled,
-                    dt=pd.Timestamp.utcnow(),
-                    price=trade['price'],
-                    order_id=order.id,
-                    commission=commission,
-                    fee_currency=trade['fee']['currency'].lower(),
-                    is_quote_live=(self.quote_currency ==
-                                   trade['fee']['currency'].lower())
-                )
-            else:
-                transaction = Transaction(
-                    asset=order.asset,
-                    amount=filled,
-                    dt=pd.Timestamp.utcnow(),
-                    price=trade['price'],
-                    order_id=order.id,
-                    commission=commission,
-                )
-            transactions.append(transaction)
+        #     if 'fee' in trade and 'currency' in trade['fee']:
+        #         transaction = Transaction(
+        #             asset=order.asset,
+        #             amount=filled,
+        #             dt=pd.Timestamp.utcnow(),
+        #             price=trade['price'],
+        #             order_id=order.id,
+        #             commission=commission,
+        #             fee_currency=trade['fee']['currency'].lower(),
+        #             is_quote_live=(self.quote_currency ==
+        #                            trade['fee']['currency'].lower())
+        #         )
+        #     else:
+        #         transaction = Transaction(
+        #             asset=order.asset,
+        #             amount=filled,
+        #             dt=pd.Timestamp.utcnow(),
+        #             price=trade['price'],
+        #             order_id=order.id,
+        #             commission=commission,
+        #         )
+        #     transactions.append(transaction)
 
-        order.filled = round(order.filled, order.asset.decimals)
-        order.broker_order_id = ', '.join([t['id'] for t in trades])
-        return transactions
+        # order.filled = round(order.filled, order.asset.decimals)
+        # order.broker_order_id = ', '.join([t['id'] for t in trades])
+        # return transactions
 
     def get_order(self, order_id, asset_or_symbol=None,
                   return_price=False, params={}):

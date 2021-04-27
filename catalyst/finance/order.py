@@ -48,7 +48,7 @@ class Order(object):
 
     @expect_types(asset=Asset)
     def __init__(self, dt, asset, amount, stop=None, limit=None, filled=0,
-                 commission=0, id=None):
+                 commission=0, id=None, matched_price=None):
         """
         @dt - datetime.datetime that the order was placed
         @asset - asset for the order.
@@ -75,7 +75,7 @@ class Order(object):
         self.direction = math.copysign(1, self.amount)
         self.type = zp.DATASOURCE_TYPE.ORDER
         self.broker_order_id = None
-        self.matched_price = None
+        self.matched_price = matched_price
 
     def make_id(self):
         return uuid.uuid4().hex
