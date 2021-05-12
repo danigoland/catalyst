@@ -1523,6 +1523,7 @@ class TradingAlgorithm(object):
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
+                             limit_price,
                              self.updated_portfolio(),
                              self.get_datetime(),
                              self.trading_client.current_data)

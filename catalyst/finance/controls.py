@@ -47,6 +47,7 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -115,6 +116,7 @@ class MaxOrderCount(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -150,6 +152,7 @@ class RestrictedListOrder(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -195,6 +198,7 @@ class MaxOrderSize(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -209,8 +213,11 @@ class MaxOrderSize(TradingControl):
         if self.max_shares is not None and amount > self.max_shares:
             self.handle_violation(asset, amount, algo_datetime)
 
-        current_asset_price = algo_current_data.current(asset, "price")
-        order_value = amount * current_asset_price
+        if limit_price is not None:
+            asset_price = limit_price
+        else:
+            asset_price = algo_current_data.current(asset, "price")
+        order_value = amount * asset_price
 
         too_much_value = (self.max_notional is not None and
                           order_value > self.max_notional)
@@ -253,6 +260,7 @@ class MaxPositionSize(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -274,7 +282,10 @@ class MaxPositionSize(TradingControl):
             self.handle_violation(asset, amount, algo_datetime)
 
         current_price = algo_current_data.current(asset, "price")
-        value_post_order = shares_post_order * current_price
+        order_price = limit_price if limit_price is not None else current_price
+        current_shares_value = current_share_count * current_price
+        order_value = amount * order_price
+        value_post_order = current_shares_value + order_value
 
         too_much_value = (self.max_notional is not None and
                           abs(value_post_order) > self.max_notional)
@@ -294,6 +305,7 @@ class LongOnly(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
@@ -317,6 +329,7 @@ class AssetDateBounds(TradingControl):
     def validate(self,
                  asset,
                  amount,
+                 limit_price,
                  portfolio,
                  algo_datetime,
                  algo_current_data):
