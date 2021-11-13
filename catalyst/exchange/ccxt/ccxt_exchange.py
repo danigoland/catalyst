@@ -1,5 +1,6 @@
 import copy
 import json
+import datetime
 import os
 import re
 from collections import defaultdict
@@ -85,6 +86,8 @@ class CCXT(Exchange):
         self.low_balance_threshold = 0.1
         self.request_cpt = dict()
         self._common_symbols = dict()
+        self.tickers_cache = None
+        self.tickers_cache_dt = None
 
         # Operations with retry features
         self.attempts = dict(
@@ -1244,7 +1247,19 @@ class CCXT(Exchange):
             )
             raise ExchangeRequestError(error=e)
 
+    def _same_minute(self, a, b):
+        minutes_diff = abs((a - b).total_seconds()) / 60
+        return minutes_diff < 1 and a.minute == b.minute
+
     def tickers(self, assets, on_ticker_error='raise'):
+        now = datetime.datetime.utcnow()
+        if self.tickers_cache_dt is None or not self._same_minute(now, self.tickers_cache_dt):
+            self.tickers_cache = self.tickers_internal(self.active_assets)
+            self.tickers_cache_dt = now
+
+        return dict(filter(lambda elem: elem[0] in assets, self.tickers_cache.items()))
+
+    def tickers_internal(self, assets, on_ticker_error='raise'):
         """
         Retrieve current tick data for the given assets
 

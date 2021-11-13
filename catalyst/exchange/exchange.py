@@ -33,6 +33,7 @@ class Exchange:
     def __init__(self):
         self.name = None
         self.assets = []
+        self.active_assets = []
         self._symbol_maps = [None, None]
         self.minute_writer = None
         self.minute_reader = None
