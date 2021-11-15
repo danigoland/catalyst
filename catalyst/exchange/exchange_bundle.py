@@ -413,12 +413,16 @@ class ExchangeBundle:
                                                 assets=asset,
                                                 start_dt=request_start_date,
                                                 bar_count=request_size)
-            if len(results) == 0:
-                break
-            minutes_diff = int(int((results[-1]['last_traded'] - request_start_date).total_seconds()) / 60) + 1
+
+            if len(results) != 0:
+                minutes_diff = int(int((results[-1]['last_traded'] - request_start_date).total_seconds()) / 60) + 1
+                candles.extend(results)
+            else:
+                # if we don't have any data, let's just jump to the next request until we find the first minute
+                minutes_diff = 1000
+
             minutes_to_fetch -= minutes_diff
             fetched_minutes += minutes_diff
-            candles.extend(results)
 
         df = get_asset_candles_df(candles=candles, fields=['open', 'high', 'low', 'close', 'volume'])
         return df
