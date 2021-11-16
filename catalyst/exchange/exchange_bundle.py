@@ -424,6 +424,10 @@ class ExchangeBundle:
             minutes_to_fetch -= minutes_diff
             fetched_minutes += minutes_diff
 
+        if len(candles) == 0:
+            log.warn("[{}] No candles found in period: {}", asset.symbol, period)
+            return pd.DataFrame()
+
         df = get_asset_candles_df(candles=candles, fields=['open', 'high', 'low', 'close', 'volume'])
         return df
 
