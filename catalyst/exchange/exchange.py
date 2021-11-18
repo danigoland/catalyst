@@ -631,7 +631,7 @@ class Exchange:
 
         candles = self.get_candles(
             freq=freq,
-            assets=[asset],
+            assets=asset,  # when we pass a single asset, the response is a flat DataFrame with the fields as columns
             bar_count=requested_bar_count,
             end_dt=end_dt if not is_current else None,
         )
