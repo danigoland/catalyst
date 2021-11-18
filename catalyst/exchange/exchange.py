@@ -19,7 +19,7 @@ from catalyst.exchange.utils.datetime_utils import get_delta, \
     get_periods, get_start_dt, get_frequency, \
     get_candles_number_from_minutes
 from catalyst.exchange.utils.exchange_utils import get_exchange_symbols, \
-    resample_history_df, has_bundle, get_candles_df
+    resample_history_df, has_bundle, get_candles_df, get_candles_df_for_asset
 from logbook import Logger
 
 log = Logger('Exchange', level=LOG_LEVEL)
@@ -560,6 +560,100 @@ class Exchange:
         df.dropna(inplace=True)
 
         return df.tail(bar_count)
+
+    def get_history_window_for_asset(self,
+                                     asset,
+                                     end_dt,
+                                     bar_count,
+                                     frequency,
+                                     fields,
+                                     data_frequency=None,
+                                     is_current=False):
+
+        """
+        Public API method that returns a dataframe containing the requested
+        history window.  Data is fully adjusted.
+
+        Parameters
+        ----------
+        asset : TradingPair
+            The asset whose data is desired.
+
+        end_dt: datetime
+            The date of the last bar
+
+        bar_count: int
+            The number of bars desired.
+
+        frequency: string
+            "1d" or "1m"
+
+        fields: string
+            The desired fields of the asset.
+
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars.
+
+        is_current: bool
+            Skip date filters when current data is requested (last few bars
+            until now).
+
+        Notes
+        -----
+        Catalysts requires an end data with bar count both CCXT wants a
+        start data with bar count. Since we have to make calculations here,
+        we ensure that the last candle match the end_dt parameter.
+
+        Returns
+        -------
+        DataFrame
+            A dataframe containing the requested data.
+
+        """
+        freq, candle_size, unit, data_frequency = get_frequency(
+            frequency, data_frequency, supported_freqs=['T', 'D', 'H']
+        )
+
+        # we want to avoid receiving empty candles
+        # so we request more than needed
+        # TODO: consider defining a const per asset
+        # and/or some retry mechanism (in each iteration request more data)
+        min_candles_number = get_candles_number_from_minutes(
+            unit,
+            candle_size,
+            self.MIN_MINUTES_REQUESTED)
+
+        requested_bar_count = bar_count
+
+        if requested_bar_count < min_candles_number:
+            requested_bar_count = min_candles_number
+
+        candles = self.get_candles(
+            freq=freq,
+            assets=[asset],
+            bar_count=requested_bar_count,
+            end_dt=end_dt if not is_current else None,
+        )
+
+        # candles sanity check - verify no empty candles were received:
+        if len(candles) == 0:
+            raise NoCandlesReceivedFromExchange(
+                bar_count=requested_bar_count,
+                end_dt=end_dt,
+                asset=asset,
+                exchange=self.name)
+
+        # for avoiding unnecessary forward fill end_dt is taken back one second
+        forward_fill_till_dt = end_dt - timedelta(seconds=1)
+
+        candles_df = get_candles_df_for_asset(candles=candles,
+                                              fields=fields,
+                                              freq=frequency,
+                                              bar_count=requested_bar_count,
+                                              end_dt=forward_fill_till_dt)
+
+        return candles_df.tail(bar_count)
 
     def get_history_window_with_bundle(self,
                                        assets,

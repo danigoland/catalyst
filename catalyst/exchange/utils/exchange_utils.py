@@ -784,6 +784,17 @@ def get_candles_df(candles, field, freq, bar_count, end_dt):
     return df
 
 
+def get_candles_df_for_asset(candles, fields, freq, bar_count, end_dt):
+    asset_df = transform_candles_to_df(candles)
+    rounded_end_dt = end_dt.floor(freq)
+    periods = pd.date_range(end=rounded_end_dt,
+                            periods=bar_count,
+                            freq=freq)
+    asset_df = forward_fill_df_if_needed(asset_df, periods)
+    result = asset_df[fields]
+    return result.dropna()
+
+
 def get_asset_candles_df(candles, fields):
     asset_df = transform_candles_to_df(candles)
     asset_df = asset_df[fields]
