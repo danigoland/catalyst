@@ -1254,7 +1254,7 @@ class CCXT(Exchange):
     def tickers(self, assets, on_ticker_error='raise'):
         now = datetime.datetime.utcnow()
         if self.tickers_cache_dt is None or not self._same_minute(now, self.tickers_cache_dt):
-            self.tickers_cache = self.tickers_internal(self.active_assets)
+            self.tickers_cache = self.tickers_internal(self.active_assets, on_ticker_error)
             self.tickers_cache_dt = now
 
         return dict(filter(lambda elem: elem[0] in assets, self.tickers_cache.items()))

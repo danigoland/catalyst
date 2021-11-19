@@ -1,6 +1,6 @@
 #
 # Build:
-#    docker build -t redeagleeye/catalyst-prod:0.5.21.CUSTOM29 -f Dockerfile-prod .
+#    docker build -t redeagleeye/catalyst-prod:0.5.21.CUSTOM30 -f Dockerfile-prod .
 #
 # Run:
 #    docker run -v /some/folder:/app -v ~/.catalyst:/root/.catalyst --name catalyst-prod -it enigmampc/catalyst-prod
