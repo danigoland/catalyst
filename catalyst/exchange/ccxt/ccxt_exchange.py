@@ -86,6 +86,7 @@ class CCXT(Exchange):
         self.low_balance_threshold = 0.1
         self.request_cpt = dict()
         self._common_symbols = dict()
+        self.active_assets = []
         self.tickers_cache = None
         self.tickers_cache_dt = None
 
@@ -1253,7 +1254,7 @@ class CCXT(Exchange):
 
     def tickers(self, assets, on_ticker_error='raise'):
         # let's skip the cache if the active assets were not defined yet (useful for the portfolio sync)
-        if hasattr(self, 'active_assets'):
+        if not self.active_assets:
             return self.tickers_internal(assets, on_ticker_error)
 
         now = datetime.datetime.utcnow()
