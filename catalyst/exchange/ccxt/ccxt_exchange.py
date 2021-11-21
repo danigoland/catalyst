@@ -1253,7 +1253,7 @@ class CCXT(Exchange):
 
     def tickers(self, assets, on_ticker_error='raise'):
         # let's skip the cache if the active assets were not defined yet (useful for the portfolio sync)
-        if hasattr(self, 'active_assets') or len(self.active_assets) == 0:
+        if hasattr(self, 'active_assets'):
             return self.tickers_internal(assets, on_ticker_error)
 
         now = datetime.datetime.utcnow()
