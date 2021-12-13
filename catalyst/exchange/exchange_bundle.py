@@ -1,6 +1,7 @@
 import os
 import shutil
 import time
+import datetime
 from datetime import timedelta
 from functools import partial
 from itertools import chain
@@ -338,7 +339,8 @@ class ExchangeBundle:
 
     def ingest_ctable(self, asset, data_frequency, period,
                       writer, empty_rows_behavior='strip',
-                      duplicates_threshold=100, cleanup=False, from_exchange=False):
+                      duplicates_threshold=100, cleanup=False, from_exchange=False,
+                      exclude_current_month=False):
         """
         Merge a ctable bundle chunk into the main bundle for the exchange.
 
@@ -360,6 +362,9 @@ class ExchangeBundle:
             A list of problems which occurred during ingestion.
 
         """
+        if exclude_current_month and datetime.datetime.utcnow().strftime('%Y-%m') == period:
+            return []
+
         problems = []
 
         if from_exchange:
@@ -624,7 +629,7 @@ class ExchangeBundle:
 
     def ingest_assets(self, assets, data_frequency, start_dt=None, end_dt=None,
                       show_progress=False, show_breakdown=False,
-                      show_report=False, from_exchange=False):
+                      show_report=False, from_exchange=False, exclude_current_month=False):
         """
         Determine if data is missing from the bundle and attempt to ingest it.
 
@@ -683,7 +688,8 @@ class ExchangeBundle:
                                     writer=writer,
                                     empty_rows_behavior='strip',
                                     cleanup=True,
-                                    from_exchange=from_exchange
+                                    from_exchange=from_exchange,
+                                    exclude_current_month=exclude_current_month
                                 )
         else:
             all_chunks = list(chain.from_iterable(itervalues(chunks)))
@@ -708,7 +714,8 @@ class ExchangeBundle:
                             writer=writer,
                             empty_rows_behavior='strip',
                             cleanup=True,
-                            from_exchange=from_exchange
+                            from_exchange=from_exchange,
+                            exclude_current_month=exclude_current_month
                         )
 
         if show_report and len(problems) > 0:
@@ -861,7 +868,8 @@ class ExchangeBundle:
 
     def ingest(self, data_frequency, include_symbols=None,
                exclude_symbols=None, start=None, end=None, csv=None,
-               show_progress=True, show_breakdown=True, show_report=True, from_exchange=False):
+               show_progress=True, show_breakdown=True, show_report=True, from_exchange=False,
+               exclude_current_month=False):
         """
         Inject data based on specified parameters.
 
@@ -903,7 +911,8 @@ class ExchangeBundle:
                     show_progress=show_progress,
                     show_breakdown=show_breakdown,
                     show_report=show_report,
-                    from_exchange=from_exchange
+                    from_exchange=from_exchange,
+                    exclude_current_month=exclude_current_month
                 )
 
     def update_symbols_file(self, assets):

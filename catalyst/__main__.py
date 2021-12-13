@@ -832,7 +832,7 @@ def remote_status(ctx, algo_id, data_output, log_output):
 @click.pass_context
 def ingest_exchange(ctx, exchange_name, data_frequency, start, end,
                     include_symbols, exclude_symbols, csv, show_progress,
-                    verbose, validate, from_exchange):
+                    verbose, validate, from_exchange, exclude_current_month):
     """
     Ingest data for the given exchange.
     """
@@ -860,7 +860,8 @@ def ingest_exchange(ctx, exchange_name, data_frequency, start, end,
         show_breakdown=verbose,
         show_report=validate,
         csv=csv,
-        from_exchange=from_exchange
+        from_exchange=from_exchange,
+        exclude_current_month=exclude_current_month
     )
 
 
