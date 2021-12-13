@@ -829,6 +829,11 @@ def remote_status(ctx, algo_id, data_output, log_output):
     default=False,
     help='Download the data directly from the exchange candles',
 )
+@click.option(
+    '--exclude-current-month/--no-exclude-current-month',
+    default=False,
+    help='Download the data directly from the exchange candles',
+)
 @click.pass_context
 def ingest_exchange(ctx, exchange_name, data_frequency, start, end,
                     include_symbols, exclude_symbols, csv, show_progress,
