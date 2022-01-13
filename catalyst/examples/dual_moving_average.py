@@ -13,7 +13,7 @@ log = Logger(NAMESPACE)
 
 def initialize(context):
     context.i = 0
-    context.asset = symbol('ltc_usd')
+    context.asset = symbol('btc_usdt')
     context.base_price = None
 
 
@@ -156,9 +156,9 @@ if __name__ == '__main__':
             initialize=initialize,
             handle_data=handle_data,
             analyze=analyze,
-            exchange_name='bitfinex',
+            exchange_name='binance',
             algo_namespace=NAMESPACE,
-            quote_currency='usd',
-            start=pd.to_datetime('2017-9-22', utc=True),
-            end=pd.to_datetime('2017-9-23', utc=True),
+            quote_currency='usdt',
+            start=pd.to_datetime('2021-09-22', utc=True),
+            end=pd.to_datetime('2021-09-23', utc=True),
         )
