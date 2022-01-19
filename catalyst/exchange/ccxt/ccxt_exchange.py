@@ -909,11 +909,11 @@ class CCXT(Exchange):
                 style=style.__class__.__name__
             )
 
+        if self.api.markets is None:
+            self.api.load_markets()
+
         side = 'buy' if amount > 0 else 'sell'
         if hasattr(self.api, 'amount_to_lots'):
-            # TODO: is this right?
-            if self.api.markets is None:
-                self.api.load_markets()
 
             # https://github.com/ccxt/ccxt/issues/1483
             market = self.api.markets[symbol]
